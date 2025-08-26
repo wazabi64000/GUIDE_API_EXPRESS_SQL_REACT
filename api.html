@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>API MVC — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>API MVC complète — structure et exemples</h2>
+
+  <article>
+    <h3>0) Rappel MVC</h3>
+    <ul>
+      <li><b>Model :</b> gère la base de données et les requêtes SQL.</li>
+      <li><b>Controller :</b> contient la logique métier et prépare la réponse.</li>
+      <li><b>Route :</b> point d’accès HTTP qui appelle le controller correspondant.</li>
+    </ul>
+    <p>Cette séparation permet de garder le code clair, maintenable et testable.</p>
+  </article>
+
+  <article>
+    <h3>1) Exemple model userModel.js</h3>
+    <pre><code>// models/userModel.js
+import { pool } from '../db.js';
+
+export async function findAll(){
+  const [rows] = await pool.query('SELECT id,name,email,created_at FROM users ORDER BY id DESC');
+  return rows;
+}
+
+export async function findById(id){
+  const [rows] = await pool.query('SELECT id,name,email,created_at FROM users WHERE id = ?', [id]);
+  return rows[0] ?? null;
+}
+
+export async function findByEmail(email){
+  const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+  return rows[0] ?? null;
+}
+
+export async function create({name,email,password}){
+  const [res] = await pool.query(
+    'INSERT INTO users(name,email,password) VALUES(?,?,?)',
+    [name,email,password]
+  );
+  return { id: res.insertId, name, email };
+}</code></pre>
+  </article>
+
+  <article>
+    <h3>2) Exemple model taskModel.js</h3>
+    <pre><code>// models/taskModel.js
+import { pool } from '../db.js';
+
+export async function create({title,user_id}){
+  const [r] = await pool.query(
+    'INSERT INTO tasks(title,user_id) VALUES(?,?)',
+    [title,user_id]
+  );
+  return { id: r.insertId, title, done:0, user_id };
+}
+
+export async function findByUser(user_id,{page=1,limit=10}){
+  const off=(page-1)*limit;
+  const [rows] = await pool.query(
+    'SELECT * FROM tasks WHERE user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?',
+    [user_id, +limit, +off]
+  );
+  const [[{total}]] = await pool.query(
+    'SELECT COUNT(*) as total FROM tasks WHERE user_id = ?',
+    [user_id]
+  );
+  return { data: rows, total, page:+page, limit:+limit };
+}
+
+export async function toggleDone(id){
+  await pool.query('UPDATE tasks SET done = 1 - done WHERE id = ?', [id]);
+}</code></pre>
+  </article>
+
+  <article>
+    <h3>3) Montage des routes dans server.js</h3>
+    <pre><code>import userRoutes from './routes/userRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+
+app.use(process.env.API_PREFIX ?? '/api' + '/users', userRoutes);
+app.use('/api/tasks', taskRoutes);</code></pre>
+    <p>Le préfixe permet de versionner ou d’organiser vos URLs facilement (ex: /api/users, /api/tasks).</p>
+  </article>
+
+  <article>
+    <h3>4) Pagination et métadonnées</h3>
+    <p>Pour les listes, renvoyez toujours :</p>
+    <pre><code>{
+  data: [...],    // tableau des éléments
+  total: 100,     // total d’éléments disponibles
+  page: 1,        // page courante
+  limit: 10       // nombre d’éléments par page
+}</code></pre>
+    <p>Cela facilite la navigation côté frontend et l’affichage des pages.</p>
+  </article>
+
+  <article>
+    <h3>5) Exercice pratique</h3>
+    <div class="exercise">
+      Implémentez <code>DELETE /api/users/:id</code> dans le controller utilisateur.  
+      Supprimez l’utilisateur et ses tâches (ON DELETE CASCADE déjà configuré).  
+      Renvoie <code>204 No Content</code> si l’opération réussit, <code>404</code> si l’utilisateur n’existe pas.
+    </div>
+  </article>
+</div>
+</body>
+</html>

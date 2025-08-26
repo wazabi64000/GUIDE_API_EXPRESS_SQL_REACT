@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guide Complet — Todo List Express + MySQL + React</title>
+ 
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+<div class="container">
+  <h1>Guide complet : Todo List avec Express, MySQL et React</h1>
+
+  <article>
+    <h2>1) Objectif du projet</h2>
+    <p>
+      Ce projet permet de créer une application Todo List complète. Elle inclut un backend en <strong>Express.js</strong> connecté à une base de données <strong>MySQL</strong>, et un frontend minimal en <strong>React</strong> sur une seule page.  
+      Les fonctionnalités principales : créer, lister, modifier, supprimer et marquer une tâche comme terminée.
+    </p>
+  </article>
+
+  <article>
+    <h2>2) Préparation des outils</h2>
+    <p>
+      Avant de commencer, il faut installer quelques outils :
+      <ul>
+        <li><strong>Node.js</strong> : runtime pour exécuter JavaScript côté serveur.</li>
+        <li><strong>MySQL</strong> : base de données relationnelle.</li>
+        <li><strong>NPM</strong> : gestionnaire de paquets pour installer les dépendances.</li>
+        <li><strong>VSCode</strong> ou autre éditeur pour coder.</li>
+      </ul>
+      Vérifiez Node.js et npm : <code>node -v</code> et <code>npm -v</code>.
+    </p>
+  </article>
+
+  <article>
+    <h2>3) Initialisation du projet</h2>
+    <p>
+      Dans un terminal, créez un dossier pour le projet et initialisez-le :
+    </p>
+    <pre><code>mkdir todo-express-react
+cd todo-express-react
+npm init -y</code></pre>
+    <p>Le <code>package.json</code> est créé et contiendra les informations du projet.</p>
+  </article>
+
+  <article>
+    <h2>4) Installation des dépendances</h2>
+    <p>
+      Installez les packages essentiels pour le backend :
+    </p>
+    <pre><code>npm install express mysql2 cors dotenv
+npm install -D nodemon</code></pre>
+    <p>
+      Explications :
+      <ul>
+        <li><code>express</code> : framework serveur.</li>
+        <li><code>mysql2</code> : driver MySQL.</li>
+        <li><code>cors</code> : autoriser le frontend React à communiquer.</li>
+        <li><code>dotenv</code> : variables d'environnement pour sécurité.</li>
+        <li><code>nodemon</code> : redémarrage automatique du serveur en dev.</li>
+      </ul>
+    </p>
+  </article>
+
+  <article>
+    <h2>5) Création de la base de données MySQL</h2>
+    <p>
+      Connectez-vous à MySQL et créez la base :
+    </p>
+    <pre><code>CREATE DATABASE tododb;
+USE tododb;
+CREATE TABLE tasks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  done TINYINT(1) DEFAULT 0
+);</code></pre>
+    <p>Chaque tâche a un titre et un statut (done 0 ou 1).</p>
+  </article>
+
+  <article>
+    <h2>6) Fichier .env</h2>
+    <p>
+      Créez un fichier <code>.env</code> pour stocker les informations sensibles :
+    </p>
+    <pre><code>DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=secret
+DB_NAME=tododb
+PORT=3000
+NODE_ENV=development</code></pre>
+    <p>Ne jamais committer ce fichier dans Git pour des raisons de sécurité.</p>
+  </article>
+
+  <article>
+    <h2>7) Backend Express.js</h2>
+    <p>
+      Créez <code>server.js</code> :
+    </p>
+    <pre><code>import express from 'express';
+import mysql from 'mysql2/promise';
+import cors from 'cors';
+import 'dotenv/config';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Connexion MySQL
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10
+});
+
+// Routes
+app.get('/tasks', async (req,res)=>{
+  const [rows] = await pool.query('SELECT * FROM tasks ORDER BY id DESC');
+  res.json({data: rows});
+});
+
+app.post('/tasks', async (req,res)=>{
+  const { title } = req.body;
+  if(!title) return res.status(400).json({error:'Title required'});
+  const [r] = await pool.query('INSERT INTO tasks(title,done) VALUES(?,0)', [title]);
+  res.status(201).json({id:r.insertId, title, done:0});
+});
+
+app.put('/tasks/:id/toggle', async (req,res)=>{
+  const { id } = req.params;
+  await pool.query('UPDATE tasks SET done = 1 - done WHERE id=?', [id]);
+  res.json({message:'Toggled'});
+});
+
+app.delete('/tasks/:id', async (req,res)=>{
+  const { id } = req.params;
+  await pool.query('DELETE FROM tasks WHERE id=?', [id]);
+  res.status(204).end();
+});
+
+// Démarrage serveur
+app.listen(process.env.PORT, ()=>console.log(`Server running on http://localhost:${process.env.PORT}`));</code></pre>
+    <p>Chaque route correspond à une opération CRUD.</p>
+  </article>
+
+  <article>
+    <h2>8) Frontend React minimal</h2>
+    <p>
+      Créez <code>index.html</code> ou utilisez React via CDN :
+    </p>
+    <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;Todo List&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id="root"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+import React, {useState,useEffect} from 'https://cdn.skypack.dev/react';
+import ReactDOM from 'https://cdn.skypack.dev/react-dom';
+
+function App(){
+  const [tasks,setTasks]=useState([]);
+  const [title,setTitle]=useState('');
+
+  async function loadTasks(){
+    const res = await fetch('http://localhost:3000/tasks');
+    const data = await res.json();
+    setTasks(data.data);
+  }
+
+  useEffect(()=>{ loadTasks(); },[]);
+
+  async function addTask(){
+    if(!title.trim()) return;
+    await fetch('http://localhost:3000/tasks',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title})
+    });
+    setTitle('');
+    loadTasks();
+  }
+
+  async function toggle(id){ await fetch(`http://localhost:3000/tasks/${id}/toggle`,{method:'PUT'}); loadTasks(); }
+  async function remove(id){ await fetch(`http://localhost:3000/tasks/${id}`,{method:'DELETE'}); loadTasks(); }
+
+  return (
+    &lt;div&gt;
+      &lt;h2&gt;Todo List&lt;/h2&gt;
+      &lt;input value={title} onChange={e=&gt;setTitle(e.target.value)} placeholder="Nouvelle tâche"/&gt;
+      &lt;button onClick={addTask}&gt;Ajouter&lt;/button&gt;
+      &lt;ul&gt;
+        {tasks.map(t=&gt;(
+          &lt;li key={t.id}&gt;
+            {t.done?'✅':'⬜️'} {t.title}
+            &lt;button onClick={()=>toggle(t.id)}&gt;Toggle&lt;/button&gt;
+            &lt;button onClick={()=>remove(t.id)}&gt;Suppr&lt;/button&gt;
+          &lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  );
+}
+
+ReactDOM.render(&lt;App /&gt;, document.getElementById('root'));
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+  </article>
+
+  <article>
+    <h2>9) Test et lancement</h2>
+    <p>
+      1. Lancer le serveur : <code>node server.js</code> ou <code>npx nodemon server.js</code>.  
+      2. Ouvrir le frontend HTML dans le navigateur.  
+      3. Créer, modifier, supprimer des tâches pour tester le CRUD.
+    </p>
+  </article>
+
+  <article>
+    <h2>10) Extensions possibles</h2>
+    <p>
+      <ul>
+        <li>Ajouter gestion des utilisateurs (auth JWT).</li>
+        <li>Ajout d’un loader et confirmation suppression.</li>
+        <li>Déploiement backend sur Heroku ou Render.</li>
+        <li>Pagination, filtres, recherche sur les tâches.</li>
+        <li>Écriture de tests unitaires et d’intégration.</li>
+      </ul>
+    </p>
+  </article>
+</div>
+</body>
+</html>

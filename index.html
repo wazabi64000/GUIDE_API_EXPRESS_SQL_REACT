@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cours Express.js - Serveur</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <h1>Cours Express.js</h1>
+    <ul>
+      <li><a href="index.html">Introduction</a></li>
+      <li><a href="server.html">Serveur</a></li>
+      <li><a href="env.html">.env</a></li>
+      <li><a href="db.html">MySQL</a></li>
+      <li><a href="routes.html">Routes</a></li>
+      <li><a href="controllers.html">Controllers</a></li>
+      <li><a href="middleware.html">Middleware</a></li>
+      <li><a href="api.html">API MVC</a></li>
+      <li><a href="tests.html">Tests</a></li>
+      <li><a href="projet.html">Projet</a></li>
+    </ul>
+  </nav>
+
+  <!-- Contenu -->
+  <div class="container">
+    <h2> Comprendre le serveur et Express.js </h2>
+
+    <article>
+      <h3>Qu'est-ce qu'un serveur ?</h3>
+      <p>
+        Un <b>serveur</b> est un programme qui <b>écoute des requêtes</b> envoyées par des clients (navigateur, application mobile, autre API) 
+        et qui <b>renvoie des réponses</b>.
+      </p>
+      <p>
+        Exemple concret : quand tu tapes <code>google.com</code>, ton navigateur envoie une <b>requête HTTP</b> au serveur de Google.  
+        Celui-ci traite la demande et renvoie une <b>réponse HTTP</b> (page HTML, JSON, image...).
+      </p>
+      <pre>
+Client (navigateur) → Requête HTTP → Serveur
+Serveur → Réponse HTTP → Client (navigateur)
+      </pre>
+      <p>
+         Dans le web, un serveur est donc une <i>oreille</i> qui attend les requêtes et une <i>bouche</i> qui envoie les réponses.
+      </p>
+    </article>
+
+    <article>
+      <h3>Node.js et serveur web</h3>
+      <p>
+        Avec <b>Node.js</b>, on peut créer un serveur web en JavaScript sans passer par Apache ou Nginx.
+      </p>
+      <p>Exemple d’un serveur Node.js moderne (ESM) :</p>
+      <pre>
+import http from 'http';
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+  res.end('Bonjour depuis Node.js moderne ');
+});
+
+server.listen(3000, () => {
+  console.log('Serveur Node.js sur http://localhost:3000');
+});
+      </pre>
+      <p>
+         Ce code fonctionne, mais il est assez bas-niveau : il faut gérer soi-même les entêtes, 
+        le parsing des URL, les erreurs...
+      </p>
+    </article>
+
+    <article>
+      <h3>Qu'est-ce qu'Express.js ?</h3>
+      <p>
+        <b>Express.js</b> est un <b>framework pour Node.js</b> qui simplifie énormément la création de serveurs web.
+      </p>
+      <ul>
+        <li>Définir des routes très simplement (<code>app.get('/users', ...)</code>)</li>
+        <li>Gérer les données JSON sans effort (<code>app.use(express.json())</code>)</li>
+        <li>Ajouter des <b>middlewares</b> pour la sécurité, les logs, l’authentification...</li>
+        <li>Suivre une structure claire (MVC)</li>
+      </ul>
+      <p>
+        Exemple équivalent avec Express (ESM) :
+      </p>
+      <pre>
+import express from 'express';
+
+const app = express();
+
+// Middleware pour parser du JSON
+app.use(express.json());
+
+// Route simple
+app.get('/', (req, res) => {
+  res.send('Bonjour depuis Express moderne ');
+});
+
+// Lancement du serveur
+app.listen(3000, () => {
+  console.log('Serveur Express sur http://localhost:3000');
+});
+      </pre>
+      <p>
+         En seulement quelques lignes, on obtient un serveur web fonctionnel et plus facile à maintenir.
+      </p>
+    </article>
+
+    <div class="exercise">
+      <h3>Exercice pratique</h3>
+      <ol>
+        <li>Créez un dossier <code>serveur-test</code> et initialisez-le avec <code>npm init -y</code></li>
+        <li>Ajoutez dans <code>package.json</code> la ligne <code>"type": "module"</code></li>
+        <li>Installez Express : <code>npm install express</code></li>
+        <li>Ajoutez le code ci-dessus dans un fichier <code>index.js</code></li>
+        <li>Lancez le serveur avec <code>node index.js</code></li>
+        <li>Ouvrez <code>http://localhost:3000</code> → vous devriez voir <b>Bonjour depuis Express moderne 🚀</b></li>
+      </ol>
+    </div>
+
+  </div>
+
+</body>
+</html>

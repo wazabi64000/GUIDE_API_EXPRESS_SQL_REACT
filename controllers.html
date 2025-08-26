@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Controllers — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>Controllers — logique métier</h2>
+
+  <article>
+    <h3>0) Qu’est-ce qu’un controller ?</h3>
+    <p>
+      Un <b>controller</b> est un fichier où l’on met la logique qui répond aux requêtes des routes.  
+      Il reçoit les données de la route (<code>req.body</code>, <code>req.params</code>), appelle éventuellement le modèle (DB), et renvoie une réponse (<code>res.json()</code>, <code>res.status()</code>).
+    </p>
+  </article>
+
+  <article>
+    <h3>1) Exemple complet UserController (ESM)</h3>
+    <pre><code>// controllers/userController.js
+import * as UserModel from '../models/userModel.js';
+import bcrypt from 'bcrypt';
+
+// Liste tous les utilisateurs
+export async function listUsers(req,res,next){
+  try {
+    const users = await UserModel.findAll();
+    // Supprimer les mots de passe avant d'envoyer
+    const safeUsers = users.map(u => { delete u.password; return u; });
+    res.json({ data: safeUsers });
+  } catch(err){ next(err); }
+}
+
+// Crée un nouvel utilisateur
+export async function createUser(req,res,next){
+  try {
+    const { name, email, password } = req.body;
+    if(!name || !email || !password) return res.status(400).json({ error: 'missing fields' });
+    
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({ name, email, password: hashed });
+    delete user.password; // ne jamais renvoyer le mot de passe
+    res.status(201).json({ data: user });
+  } catch(err){
+    if(err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'email exists' });
+    next(err);
+  }
+}
+</code></pre>
+  </article>
+
+  <article>
+    <h3>2) Exemple getUser</h3>
+    <pre><code>export async function getUser(req,res,next){
+  try {
+    const { id } = req.params;
+    const user = await UserModel.findById(id);
+    if(!user) return res.status(404).json({ error: 'not found' });
+    delete user.password;
+    res.json({ data: user });
+  } catch(err){ next(err); }
+}</code></pre>
+    <p>Cette fonction illustre la récupération d’une ressource unique et la gestion de l’erreur 404 si l’ID n’existe pas.</p>
+  </article>
+
+  <article>
+    <h3>3) Exemple updateUser</h3>
+    <pre><code>export async function updateUser(req,res,next){
+  try {
+    const { id } = req.params;
+    const { name, email } = req.body;
+    if(!name && !email) return res.status(400).json({ error: 'no fields to update' });
+
+    const existing = await UserModel.findByEmail(email);
+    if(existing && existing.id != id) return res.status(409).json({ error: 'email exists' });
+
+    const updated = await UserModel.update(id, { name, email });
+    delete updated.password;
+    res.json({ data: updated });
+  } catch(err){ next(err); }
+}</code></pre>
+  </article>
+
+  <article>
+    <h3>4) Règles & bonnes pratiques</h3>
+    <ul>
+      <li>Ne jamais renvoyer les mots de passe.</li>
+      <li>Valider systématiquement les entrées (<code>req.body</code>, <code>req.params</code>).</li>
+      <li>Gérer les erreurs DB et renvoyer les codes HTTP appropriés (400, 404, 409, 500…).</li>
+      <li>Décomposer la logique lourde en services si nécessaire pour ne pas alourdir le controller.</li>
+      <li>Les controllers doivent rester « fins » : uniquement orchestrer les appels aux modèles et renvoyer la réponse.</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>5) Testabilité</h3>
+    <p>
+      Exportez <code>app</code> depuis <code>server.js</code> et utilisez <code>supertest</code> pour tester les controllers sans démarrer le serveur réel.  
+      Exemple minimal :
+    </p>
+    <pre><code>// tests/userController.test.js
+import request from 'supertest';
+import app from '../server.js';
+
+it('GET /api/users should return 200', async () => {
+  const res = await request(app).get('/api/users');
+  expect(res.status).toBe(200);
+  expect(Array.isArray(res.body.data)).toBe(true);
+});
+</code></pre>
+  </article>
+
+  <article>
+    <h3>6) Exercice pratique</h3>
+    <div class="exercise">
+      Implémente <code>deleteUser</code> qui supprime un utilisateur par ID et renvoie 200 avec un message de succès.<br/>
+      Assure-toi de gérer le cas où l’utilisateur n’existe pas (404).
+    </div>
+  </article>
+</div>
+</body>
+</html>

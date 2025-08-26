@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MySQL & Connexion — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/><script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>MySQL — Connexion sécurisée (mysql2/promise)</h2>
+
+  <article>
+    <h3>1) Connexion avec pool (ESM)</h3>
+    <p>
+      Pour gérer plusieurs requêtes simultanées, on utilise un pool de connexions. Cela améliore la performance et évite de créer une connexion à chaque requête.
+    </p>
+    <pre><code>// db.js
+import mysql from 'mysql2/promise';
+import 'dotenv/config';
+
+export const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,  // nombre maximum de connexions simultanées
+  queueLimit: 0         // nombre illimité de requêtes en attente
+});
+</code></pre>
+    <p>
+      Avec <code>mysql2/promise</code>, on peut utiliser <code>async/await</code> pour les requêtes, ce qui rend le code plus lisible.
+    </p>
+  </article>
+
+  <article>
+    <h3>2) Requêtes paramétrées</h3>
+    <p>
+      Pour éviter les injections SQL, on utilise toujours des placeholders <code>?</code> et un tableau de valeurs.
+    </p>
+    <pre><code>const [rows] = await pool.query(
+  'SELECT * FROM users WHERE email = ?',
+  [email]
+);
+</code></pre>
+    <p>
+      Les valeurs sont automatiquement échappées par la librairie, ce qui protège la base de données.
+    </p>
+  </article>
+
+  <article>
+    <h3>3) Migration simple (SQL)</h3>
+    <p>
+      Exemple de script SQL pour créer la base et les tables principales :
+    </p>
+    <pre><code>CREATE DATABASE IF NOT EXISTS testdb;
+USE testdb;
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tasks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  done TINYINT(1) DEFAULT 0,
+  user_id INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+</code></pre>
+    <p>
+      <b>Remarque :</b> la contrainte <code>FOREIGN KEY</code> assure l’intégrité référentielle : si un utilisateur est supprimé, ses tâches associées sont automatiquement supprimées.
+    </p>
+  </article>
+
+  <article>
+    <h3>4) Pool vs Connection</h3>
+    <p>
+      - <b>Connection simple :</b> crée et ferme une connexion pour chaque requête → lent pour un serveur web.  
+      - <b>Pool :</b> réutilise des connexions existantes, gère la concurrence et améliore la performance.
+    </p>
+  </article>
+
+  <article>
+    <h3>5) Modèle utilisateur (ESM)</h3>
+    <p>
+      Exemple de fonction pour récupérer un utilisateur par email, dans <code>models/userModel.js</code> :
+    </p>
+    <pre><code>// models/userModel.js
+import { pool } from '../db.js';
+
+export async function findUserByEmail(email) {
+  const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+  return rows.length > 0 ? rows[0] : null;
+}
+</code></pre>
+    <p>
+      Cette fonction est asynchrone et utilise les requêtes paramétrées pour la sécurité.
+    </p>
+  </article>
+
+  <article>
+    <h3>6) Exercice pratique</h3>
+    <div class="exercise">
+      1. Crée un fichier <code>models/taskModel.js</code>.<br/>
+      2. Ajoute une fonction <code>findTasksByUser(userId)</code> qui renvoie toutes les tâches d’un utilisateur.<br/>
+      3. Utilise <code>async/await</code> et des requêtes paramétrées.
+    </div>
+  </article>
+</div>
+</body>
+</html>

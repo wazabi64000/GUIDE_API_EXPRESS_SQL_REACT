@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Routes — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>Routes & organisation dans Express.js</h2>
+
+  <article>
+    <h3>0) Qu'est-ce qu'une route ?  </h3>
+    <p>
+      Une <b>route</b> est une URL de votre serveur qui répond à une requête HTTP spécifique (GET, POST, PUT, DELETE…).  
+      Elle permet de dire au serveur : <i>"quand quelqu'un demande cette URL, fais ça"</i>.
+    </p>
+    <p>Exemple concret :</p>
+    <ul>
+      <li>GET <code>/users</code> → renvoie la liste des utilisateurs</li>
+      <li>POST <code>/users</code> → crée un nouvel utilisateur</li>
+      <li>GET <code>/users/1</code> → renvoie l’utilisateur avec l’ID 1</li>
+      <li>PUT <code>/users/1</code> → modifie l’utilisateur avec l’ID 1</li>
+      <li>DELETE <code>/users/1</code> → supprime l’utilisateur avec l’ID 1</li>
+    </ul>
+    <p>
+      En résumé : une route est un point d’accès pour le client (navigateur, application) pour demander ou envoyer des données.
+    </p>
+  </article>
+
+  <article>
+    <h3>1) Exemple complet de route (ESM)</h3>
+    <pre><code>// routes/userRoutes.js
+import { Router } from 'express';
+import { listUsers, createUser, getUser, updateUser, deleteUser } from '../controllers/userController.js';
+
+const router = Router();
+
+router.get('/', listUsers);         // GET /users
+router.post('/', createUser);       // POST /users
+router.get('/:id', getUser);        // GET /users/:id
+router.put('/:id', updateUser);     // PUT /users/:id
+router.delete('/:id', deleteUser);  // DELETE /users/:id
+
+export default router;
+</code></pre>
+    <p>
+      Chaque route appelle une fonction du contrôleur qui contient la logique métier.
+    </p>
+  </article>
+
+  <article>
+    <h3>2) Préfixe global pour les routes</h3>
+    <pre><code>import userRoutes from './routes/userRoutes.js';
+app.use(process.env.API_PREFIX + '/users', userRoutes);</code></pre>
+    <p>
+      Si <code>API_PREFIX=/api</code>, alors l’URL finale devient <code>/api/users</code>.
+    </p>
+  </article>
+
+  <article>
+    <h3>3) Sécurité et bonnes pratiques</h3>
+    <ul>
+      <li>Valider <code>req.body</code> et <code>req.params</code> pour éviter les erreurs.</li>
+      <li>Limiter les méthodes exposées.</li>
+      <li>Contrôler les autorisations (ex: <code>req.user.id</code>).</li>
+      <li>Ne jamais exposer de données sensibles dans les erreurs.</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>4) Exemple de validation simple</h3>
+    <pre><code>if (!req.body.email || typeof req.body.email !== 'string') {
+  return res.status(400).json({ error: 'email requis et doit être une chaîne de caractères' });
+}</code></pre>
+  </article>
+
+  <article>
+    <h3>5) Organisation recommandée</h3>
+    <pre><code>mon-api/
+├─ server.js
+├─ routes/
+│  ├─ userRoutes.js
+│  └─ taskRoutes.js
+├─ controllers/
+│  ├─ userController.js
+│  └─ taskController.js
+├─ middleware/
+│  └─ auth.js
+└─ db/
+   └─ index.js
+</code></pre>
+  </article>
+
+  <article>
+    <h3>6) Exercice pratique</h3>
+    <div class="exercise">
+      Créez <code>routes/taskRoutes.js</code> avec POST, GET, PUT et DELETE pour les tâches.  
+      Montez le router dans <code>server.js</code> sous <code>/api/tasks</code>.
+    </div>
+  </article>
+</div>
+</body>
+</html>

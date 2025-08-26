@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Serveur — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Introduction</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>Mon premier serveur Express (ESM & sécurisé)</h2>
+
+  <article>
+    <h3>1) package.json (ESM obligatoire)</h3>
+    <p>
+      Pour utiliser la syntaxe moderne <code>import/export</code>, il faut indiquer <code>"type": "module"</code> dans <code>package.json</code>.
+    </p>
+    <pre><code>{
+  "name": "mon-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.0.0",
+    "mysql2": "^3.0.0",
+    "helmet": "^7.0.0",
+    "cors": "^2.8.5",
+    "bcrypt": "^5.1.0"
+  }
+}</code></pre>
+    <p>
+      Ici, nous avons ajouté quelques dépendances utiles : <code>helmet</code> pour la sécurité HTTP, <code>cors</code> pour gérer les accès cross-origin, et <code>bcrypt</code> pour hacher les mots de passe.
+    </p>
+  </article>
+
+  <article>
+    <h3>2) server.js (configuration du serveur)</h3>
+    <p>
+      Le fichier <code>server.js</code> est le point d’entrée principal.  
+      Il initialise Express, configure les middlewares et enregistre les routes.
+    </p>
+    <pre><code>// server.js
+import 'dotenv/config';                 
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+
+// routes
+import userRoutes from './routes/userRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+
+// middlewares personnalisés
+import { errorHandler } from './middleware/errorHandler.js';
+
+const app = express();
+
+// Sécurité de base et parsing JSON
+app.use(helmet());
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(express.json({ limit: '1mb' }));
+
+// Logger simple
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
+
+// Endpoint santé (utile en production pour monitoring)
+app.get('/health', (req, res) => {
+  res.json({ status: "ok", startedAt: new Date().toISOString() });
+});
+
+// Middleware d’erreurs global
+app.use(errorHandler);
+
+const PORT = process.env.PORT ?? 3000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+export default app; // utile pour les tests
+</code></pre>
+    <p>
+      Le serveur démarre sur le port défini dans <code>.env</code> ou sur 3000 par défaut.  
+      L’export <code>default</code> est prévu pour permettre d’utiliser <code>app</code> dans des tests.
+    </p>
+  </article>
+
+  <article>
+    <h3>3) Structure minimale recommandée</h3>
+    <pre><code>mon-api/
+│ package.json
+│ server.js
+│ .env
+├─ routes/
+│   ├─ userRoutes.js
+│   └─ taskRoutes.js
+├─ middleware/
+│   └─ errorHandler.js
+└─ db/
+    └─ index.js
+</code></pre>
+    <p>
+      Cette structure facilite la maintenance : séparation claire entre le serveur, les routes, les middlewares et la configuration base de données.
+    </p>
+  </article>
+
+  <article>
+    <h3>4) Middleware d’erreurs global</h3>
+    <p>
+      Exemple de fichier <code>middleware/errorHandler.js</code> :
+    </p>
+    <pre><code>// middleware/errorHandler.js
+export function errorHandler(err, req, res, next) {
+  console.error(err);
+  res.status(err.status || 500).json({
+    error: err.message || "Erreur interne du serveur"
+  });
+}
+</code></pre>
+    <p>
+      Ce middleware doit être enregistré en dernier. Il permet d’éviter que l’application plante si une erreur n’est pas capturée.
+    </p>
+  </article>
+
+  <article>
+    <h3>5) Bonnes pratiques initiales</h3>
+    <ul>
+      <li>Ne pas renvoyer les messages d’erreurs SQL bruts au client.</li>
+      <li>Limiter la taille du body JSON pour éviter les abus.</li>
+      <li>Utiliser <code>helmet()</code> pour les entêtes HTTP sécurisés.</li>
+      <li>Configurer <code>cors</code> avec un domaine précis en production (éviter <code>*</code>).</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>6) Exercice</h3>
+    <div class="exercise">
+      Ajoute une nouvelle route <code>GET /api/version</code> qui renvoie un objet JSON avec :
+      <ul>
+        <li><code>version</code> (tirée de package.json)</li>
+        <li><code>uptime</code> (temps depuis le lancement du serveur en secondes)</li>
+      </ul>
+    </div>
+  </article>
+
+  <article>
+    <h3>7) Astuce développement</h3>
+    <p>
+      Avec Node.js 18+, tu peux utiliser <code>node --watch server.js</code> pour recharger automatiquement le serveur à chaque modification, sans installer nodemon.
+    </p>
+  </article>
+</div>
+</body>
+</html>

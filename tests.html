@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tests — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>Tests & Qualité — API Express.js</h2>
+
+  <article>
+    <h3>0) Pourquoi tester ?</h3>
+    <p>
+      Les tests assurent que votre API fonctionne comme prévu, qu’elle reste stable lors de modifications et qu’elle est sécurisée.
+    </p>
+  </article>
+
+  <article>
+    <h3>1) Préparer l'environnement de test</h3>
+    <ul>
+      <li>Créez une base dédiée aux tests : <code>testdb_test</code>.</li>
+      <li>Utilisez des variables d'environnement spécifiques (<code>DB_NAME=testdb_test</code>).</li>
+      <li>Avant chaque suite de tests, réinitialisez les tables pour éviter les conflits.</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>2) Supertest + Jest (exemple ESM)</h3>
+    <pre><code>// package.json devDependencies: "jest","supertest"
+// test/user.test.js
+import request from 'supertest';
+import app from '../server.js';
+
+describe('Users API', ()=>{
+  // Test GET /api/users
+  test('GET /api/users 200', async ()=>{
+    const res = await request(app).get('/api/users');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
+
+  // Test POST /api/users
+  test('POST /api/users 201', async ()=>{
+    const res = await request(app)
+      .post('/api/users')
+      .send({ name:'Test', email:'test@example.com', password:'secret' });
+    expect(res.status).toBe(201);
+    expect(res.body.data).toHaveProperty('id');
+  });
+});
+</code></pre>
+    <p>
+      <b>Jest</b> est le framework de test, <b>Supertest</b> permet de faire des requêtes HTTP sur votre API sans démarrer un serveur réel.
+    </p>
+  </article>
+
+  <article>
+    <h3>3) Tests d'intégration</h3>
+    <p>
+      Vérifiez les scénarios complets de bout en bout :
+    </p>
+    <ol>
+      <li>Créer un utilisateur</li>
+      <li>Créer une tâche pour cet utilisateur</li>
+      <li>Lister les tâches et vérifier qu’elle existe</li>
+      <li>Supprimer l’utilisateur et vérifier que les tâches associées sont aussi supprimées</li>
+    </ol>
+  </article>
+
+  <article>
+    <h3>4) Tests de sécurité</h3>
+    <ul>
+      <li>Injection SQL : tester avec des entrées malicieuses (les requêtes paramétrées doivent les bloquer).</li>
+      <li>Limites : envoyer un body > 1MB doit renvoyer 413.</li>
+      <li>Clés API : accéder à des routes protégées sans clé doit renvoyer 401.</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>5) Exercice pratique</h3>
+    <div class="exercise">
+      Écris un test qui vérifie que la création d’un utilisateur avec un email déjà existant renvoie <code>409 Conflict</code>.
+    </div>
+  </article>
+</div>
+</body>
+</html>

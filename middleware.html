@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Middleware — Cours Express.js</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="script.js" defer></script>
+</head>
+<body>
+<nav>
+  <h1>Cours Express.js</h1>
+  <ul>
+    <li><a href="index.html">Intro</a></li>
+    <li><a href="server.html">Serveur</a></li>
+    <li><a href="env.html">.env</a></li>
+    <li><a href="db.html">MySQL</a></li>
+    <li><a href="routes.html">Routes</a></li>
+    <li><a href="controllers.html">Controllers</a></li>
+    <li><a href="middleware.html">Middleware</a></li>
+    <li><a href="api.html">API MVC</a></li>
+    <li><a href="tests.html">Tests</a></li>
+    <li><a href="projet.html">Projet</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <h2>Middlewares essentiels dans Express.js</h2>
+
+  <article>
+    <h3>0) Qu’est-ce qu’un middleware ?</h3>
+    <p>
+      Un <b>middleware</b> est une fonction qui reçoit <code>req, res, next</code> et peut :
+    </p>
+    <ul>
+      <li>Modifier la requête ou la réponse</li>
+      <li>Exécuter du code avant de passer à la route suivante</li>
+      <li>Bloquer la requête ou renvoyer une erreur</li>
+    </ul>
+    <p>
+      On peut les utiliser pour : authentification, journalisation, limitation de requêtes, validation, gestion d’erreurs…
+    </p>
+  </article>
+
+  <article>
+    <h3>1) Gestion centralisée des erreurs</h3>
+    <pre><code>// middleware/errorHandler.js
+export function errorHandler(err, req, res, next){
+  console.error(err); // log interne
+  const status = err.status || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : err.message;
+  res.status(status).json({ error: message });
+}</code></pre>
+    <p>
+      Ce middleware doit être <b>le dernier</b> après toutes les routes, pour capturer les erreurs et renvoyer un message sûr au client.
+    </p>
+  </article>
+
+  <article>
+    <h3>2) Limiteur de requêtes simple</h3>
+    <pre><code>// middleware/rateLimit.js
+const hits = new Map();
+export function rateLimit(req,res,next){
+  const ip = req.ip;
+  const now = Date.now();
+  const window = 60000; // 1 minute
+  const max = 60;       // max 60 requêtes par IP
+  const arr = (hits.get(ip) || []).filter(t => now - t < window);
+  arr.push(now);
+  hits.set(ip, arr);
+  if(arr.length > max) return res.status(429).json({ error: 'Too many requests' });
+  next();
+}</code></pre>
+    <p>
+      Pour production, utilisez une solution plus robuste (Redis, package npm <code>express-rate-limit</code>).
+    </p>
+  </article>
+
+  <article>
+    <h3>3) Limite de taille du body</h3>
+    <p>
+      Déjà configuré dans <code>server.js</code> : <code>express.json({ limit: '1mb' })</code>.  
+      Toute requête dépassant cette limite renverra automatiquement une erreur 413.
+    </p>
+  </article>
+
+  <article>
+    <h3>4) Middleware d’authentification simple (clé API)</h3>
+    <pre><code>export function requireApiKey(req,res,next){
+  const key = req.headers['x-api-key'];
+  if(!key || key !== process.env.API_KEY){
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+}</code></pre>
+    <p>
+      Exemple simple pour protéger certaines routes avec une clé stockée dans <code>.env</code>.
+    </p>
+  </article>
+
+  <article>
+    <h3>5) Ordre d’utilisation dans server.js</h3>
+    <pre><code>import { rateLimit } from './middleware/rateLimit.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { requireApiKey } from './middleware/auth.js';
+
+app.use(rateLimit);                 // limite globale
+app.use('/api/private', requireApiKey); // protège certaines routes
+// ... routes
+app.use(errorHandler);               // dernier middleware
+</code></pre>
+  </article>
+
+  <article>
+    <h3>6) Bonnes pratiques</h3>
+    <ul>
+      <li>Le middleware d’erreurs doit toujours être <b>le dernier</b>.</li>
+      <li>Ne jamais exposer les erreurs internes en production.</li>
+      <li>Centraliser la validation et l’authentification via des middlewares réutilisables.</li>
+      <li>Pour limiter le trafic, préférez un store externe (Redis) plutôt que la mémoire locale pour la production.</li>
+    </ul>
+  </article>
+
+  <article>
+    <h3>7) Exercice pratique</h3>
+    <div class="exercise">
+      Monte <code>rateLimit</code> globalement dans <code>server.js</code>.  
+      Testez en envoyant plus de 60 requêtes/minute à votre API (ou ajustez la limite pour un test local).
+    </div>
+  </article>
+</div>
+</body>
+</html>
